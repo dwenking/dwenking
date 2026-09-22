@@ -1,4 +1,4 @@
-"""Regenerate img/fetch.svg: binary-art Shanghai skyline (Oriental Pearl) + neofetch-style info + live GitHub stats.
+"""Regenerate img/fetch.svg: pixel-art Shanghai skyline (Oriental Pearl) with a 0/1 reflection + neofetch-style info + live GitHub stats.
 Run: python3 gen.py   (set GITHUB_TOKEN to raise API rate limits; the Action does)"""
 import io, json, os, urllib.request
 import random
@@ -7,64 +7,78 @@ from PIL import Image, ImageDraw
 USER = "dwenking"
 W = 62                         # right-column width in chars
 CW, LH, FS = 7.8, 17, 13       # char width, line height, font size (px)
-AFS = 7                        # art font size; smaller cells → more detail in the same pixel width as the text column
+PC, PR = 80, 40                # pixel-art grid: columns, rows (sky + skyline)
+PX = W * CW / PC               # square pixel size → art column exactly as wide as the text column
+AFS = 7                        # reflection font size
 ACW, ALH = AFS * .6, AFS * 1.0
-COLS = int(W * CW / ACW)       # art column is exactly as wide as the text column
-ROWS = 54                      # art rows; ~58% skyline above the horizon, the rest binary rain
+COLS, RR = int(W * CW / ACW), 22   # reflection grid: 0/1 columns, rows
 
 def get(url):
     req = urllib.request.Request(url, headers={"User-Agent": USER, "Accept": "application/vnd.github+json",
           **({"Authorization": "Bearer " + os.environ["GITHUB_TOKEN"]} if os.environ.get("GITHUB_TOKEN") else {})})
     return urllib.request.urlopen(req, timeout=30).read()
 
-def skyline_mask():
-    """Lujiazui silhouette drawn at cell resolution ×(8,14). Returns (city mask, pearl mask, ground row)."""
-    sx, sy = 8, 14
-    Wp, Hp = COLS * sx, ROWS * sy
-    g = int(Hp * .58)                                   # horizon (ground line) in px
-    city = Image.new("L", (Wp, Hp), 0); d = ImageDraw.Draw(city)
-    def box(x0, x1, h): d.rectangle([int(x0 * Wp), g - int(h * g), int(x1 * Wp), g], fill=255)
-    rnd = random.Random(7)
-    for i in range(14):                                  # background blocks, kept clear of the Pearl
-        x = i / 14 + rnd.uniform(-.02, .02)
-        if .08 < x < .46: continue
-        box(x, x + rnd.uniform(.04, .08), rnd.uniform(.14, .34))
-    for w, h in [(.075, .40), (.058, .52), (.042, .62), (.026, .72)]: box(.56 - w / 2, .56 + w / 2, h)  # Jin Mao tiers
-    d.line([(.56 * Wp, g - .72 * g), (.56 * Wp, g - .82 * g)], fill=255, width=3)
-    d.polygon([(.68 * Wp, g), (.82 * Wp, g), (.785 * Wp, g - .80 * g), (.715 * Wp, g - .80 * g)], fill=255)  # SWFC
-    d.polygon([(.735 * Wp, g - .79 * g), (.765 * Wp, g - .79 * g), (.758 * Wp, g - .66 * g), (.742 * Wp, g - .66 * g)], fill=0)
-    d.polygon([(.87 * Wp, g), (.98 * Wp, g), (.95 * Wp, g - .92 * g), (.90 * Wp, g - .92 * g)], fill=255)  # Shanghai Tower
-    d.rectangle([0, g, Wp, g + sy], fill=255)                                                              # ground band
-    pearl = Image.new("L", (Wp, Hp), 0); p = ImageDraw.Draw(pearl)
-    cx = .27 * Wp
-    for dx in (-.13, 0, .13): p.line([(cx + dx * Wp, g), (cx, g - .36 * g)], fill=255, width=7)          # tripod legs
-    p.rectangle([cx - .016 * Wp, g - 1.0 * g, cx + .016 * Wp, g], fill=255)                              # mast
-    p.ellipse([cx - .14 * Wp, g - .58 * g, cx + .14 * Wp, g - .22 * g], fill=255)                        # lower sphere
-    p.ellipse([cx - .08 * Wp, g - .90 * g, cx + .08 * Wp, g - .70 * g], fill=255)                        # upper sphere
-    p.ellipse([cx - .03 * Wp, g - 1.02 * g, cx + .03 * Wp, g - .95 * g], fill=255)                       # top sphere
-    p.line([(cx, g - 1.0 * g), (cx, g - 1.14 * g)], fill=255, width=3)                                   # antenna
-    cell = lambda im: [im.resize((COLS, ROWS), Image.BOX).crop((0, y, COLS, y + 1)).tobytes() for y in range(ROWS)]
-    return cell(city), cell(pearl), int(g / sy)
+BG = "#0d1117"
+SAL, PK, MAG, CY, PU = "#e07a7a", "#ff5d8f", "#b5179e", "#4cc9f0", "#7209b7"   # Oriental Pearl
+GOLD, WIN, BRN, BRN2, BGRY, BWIN, STEEL, GRN, ROAD = "#c9a66b", "#ffe08a", "#8b5e3c", "#a67c52", "#6c7a99", "#cfe0ff", "#a8b8d0", "#7bd389", "#3a4250"
+STARS = ["#ffd166", "#c77dff", "#7dd3fc", "#ff8fab"]
+PALETTE = [SAL, PK, MAG, CY, PU, GOLD, WIN, BRN, BRN2, BGRY, BWIN, STEEL, GRN, ROAD] + STARS
+CLS = {c: f"c{i}" for i, c in enumerate(PALETTE)}          # colour → css class of its dimmed reflection
+rgb = lambda c: tuple(int(c[i:i + 2], 16) for i in (1, 3, 5))
+dim = lambda c: "#%02x%02x%02x" % tuple(int(a * .7 + b * .3) for a, b in zip(rgb(c), rgb(BG)))
 
-def ascii_art():
-    """Rows of (char, css class): 'a' grey city, 'p' highlighted Pearl, rain in grey."""
-    city, pearl, ground = skyline_mask()
+def pixel_sky():
+    """Coloured pixel-art Lujiazui night skyline drawn directly at PC×PR cells (one cell = one square pixel)."""
+    im = Image.new("RGB", (PC, PR), BG); d = ImageDraw.Draw(im); rnd = random.Random(7)
+    g = PR - 1                                            # ground row
+    for _ in range(24):                                   # stars: dots, some as small plus shapes
+        x, y, c = rnd.randrange(PC), rnd.randrange(g - 10), rnd.choice(STARS)
+        d.point((x, y), c)
+        if rnd.random() < .25: d.line([(x - 1, y), (x + 1, y)], c); d.line([(x, y - 1), (x, y + 1)], c)
+    def windows(x0, y0, x1, y1, body, win, step=2):       # lit windows on cells that are still body-coloured
+        for y in range(y0 + 1, y1, 2):
+            for x in range(x0 + 1, x1, step):
+                if im.getpixel((x, y)) == rgb(body) and rnd.random() < .65: d.point((x, y), win)
+    def bld(x0, x1, h, body, win):
+        d.rectangle([x0, g - h, x1, g], fill=body); windows(x0, g - h, x1, g, body, win)
+    for x0, w, h, body in [(0, 5, 6, BRN), (6, 5, 9, BRN2), (34, 5, 8, BRN), (40, 4, 11, BRN2), (52, 4, 7, BRN), (66, 2, 9, BRN2)]:
+        bld(x0, x0 + w, h, body, WIN)
+    d.ellipse([40, g - 14, 44, g - 10], fill=GRN)         # a small green dome, Bund style
+    for hw, h in [(5, 16), (4, 22), (3, 27), (2, 31)]: bld(46 - hw, 46 + hw, h, GOLD, WIN)   # Jin Mao tiers
+    d.line([(46, g - 31), (46, g - 35)], fill=GOLD)
+    d.polygon([(55, g), (64, g), (62, g - 33), (57, g - 33)], fill=BGRY); windows(55, g - 33, 64, g, BGRY, BWIN)  # SWFC
+    d.rectangle([59, g - 32, 60, g - 26], fill=BG)        # its trapezoid aperture
+    d.polygon([(68, g), (78, g), (76, g - 37), (70, g - 37)], fill=STEEL); windows(68, g - 37, 78, g, STEEL, BWIN)  # Shanghai Tower
+    cx = 22                                               # Oriental Pearl
+    for x0 in (15, 22, 29): d.line([(x0, g), (cx, g - 7)], fill=SAL, width=2)   # tripod legs
+    d.rectangle([cx - 1, g - 30, cx + 1, g - 18], fill=SAL)                       # column
+    for y in range(g - 29, g - 18, 2): d.point((cx, y), PK)
+    def sphere(box):
+        d.ellipse(box, fill=MAG)
+        for y in range(box[1], box[3] + 1):
+            for x in range(box[0], box[2] + 1):
+                if im.getpixel((x, y)) == rgb(MAG) and (x + y) % 3 == 0: d.point((x, y), rnd.choice([PK, CY, PU]))
+    sphere([16, g - 19, 28, g - 7]); sphere([19, g - 34, 25, g - 28])
+    d.ellipse([cx - 1, g - 37, cx + 1, g - 35], fill=PK)
+    d.line([(cx, g - 38), (cx, g - 35)], fill=CY)                                 # antenna
+    d.line([(0, g), (PC - 1, g)], fill=ROAD)                                      # waterfront
+    return im
+
+def reflection(sky):
+    """Mirror of the skyline as 0/1 characters, dense at the waterline and dripping away downward."""
+    flip = sky.crop((0, PR - 27, PC, PR)).transpose(Image.FLIP_TOP_BOTTOM).resize((COLS, RR), Image.NEAREST)  # mirror the lower 27 rows
     rnd = random.Random(42)                             # fixed seed → the Action only commits when stats change
-    drip = [rnd.uniform(.25, 1.0) ** .6 for _ in range(COLS)]  # per-column drip length → vertical streaks
-    art = []
-    for y in range(ROWS):
-        row = []
+    drip = [rnd.uniform(.7, 1.0) ** .5 for _ in range(COLS)]
+    rows = []
+    for y in range(RR):
+        depth, row = y / RR, []
         for x in range(COLS):
-            if y <= ground:
-                if pearl[y][x] > 100: row.append((rnd.choice("01"), "p"))
-                elif city[y][x] > 100: row.append((rnd.choice("01"), "a"))
-                else: row.append((" ", "a"))
-            else:
-                depth = (y - ground) / (ROWS - ground)
-                pr = max(0.0, 1 - depth / drip[x]) ** .6 * (1 - .3 * depth)
-                row.append((rnd.choice("01") if rnd.random() < pr else " ", "a"))
-        art.append(row)
-    return art
+            c = "#%02x%02x%02x" % flip.getpixel((x, y))
+            pr = max(0.0, 1 - depth / drip[x]) ** .3 * (1 - .15 * depth) if c != BG else .15 * (1 - depth)
+            if y < 2: pr = 1                            # solid band right under the horizon
+            row.append((rnd.choice("01") if rnd.random() < pr else " ", CLS.get(c, "a")))
+        rows.append(row)
+    return rows
 
 def stats():
     try:
@@ -114,17 +128,28 @@ def lines(s):
     ]
 
 def main():
-    art, txt = ascii_art(), lines(stats())
+    sky, txt = pixel_sky(), lines(stats())
+    ref = reflection(sky)
     PAD = 28
     n = len(txt) + 1
-    H = int(max(n * LH, len(art) * ALH + 2 * PAD) + 40)  # art rows use the smaller art line height
+    art_h = PR * PX + RR * ALH
+    H = int(max(n * LH, art_h + 2 * PAD) + 40)
     x_txt = PAD + W * CW + 40
     W_px = int(x_txt + W * CW + PAD)
+    style = ".a{fill:#8b949e}.k{fill:#f2a65a}.d{fill:#484f58}.v{fill:#79c0ff}.t{fill:#e6edf3;font-weight:700}" + \
+            "".join(f".{k}{{fill:{dim(c)}}}" for c, k in CLS.items())
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W_px}" height="{H}" viewBox="0 0 {W_px} {H}" font-family="SF Mono,Menlo,Consolas,monospace" font-size="{FS}">',
-           f'<rect width="{W_px}" height="{H}" rx="10" fill="#0d1117" stroke="#30363d"/>',
-           '<style>.a{fill:#8b949e}.p{fill:#e6edf3}.k{fill:#f2a65a}.d{fill:#484f58}.v{fill:#79c0ff}.t{fill:#e6edf3;font-weight:700}</style>']
-    y0 = PAD + 12 + ((n - 1) * LH - len(art) * ALH) / 2  # vertically centre the art against the text block
-    for i, row in enumerate(art):
+           f'<rect width="{W_px}" height="{H}" rx="10" fill="{BG}" stroke="#30363d"/>', f"<style>{style}</style>"]
+    ay = (H - art_h) / 2
+    px = sky.load()
+    for y in range(PR):                                   # pixel rows → one rect per run of equal colour
+        x = 0
+        while x < PC:
+            c, x0 = px[x, y], x
+            while x < PC and px[x, y] == c: x += 1
+            if c != rgb(BG):
+                out.append(f'<rect x="{PAD + x0*PX:.2f}" y="{ay + y*PX:.2f}" width="{(x - x0)*PX + .3:.2f}" height="{PX + .3:.2f}" fill="#%02x%02x%02x"/>' % c)
+    for i, row in enumerate(ref):
         spans, run = [], None
         for ch, cls in row:  # merge neighbours of the same class into one tspan
             if run and run[0] == cls: run[1] += ch
@@ -132,7 +157,7 @@ def main():
                 if run: spans.append(run)
                 run = [cls, ch]
         spans.append(run)
-        out.append(f'<text font-size="{AFS}" x="{PAD}" y="{y0 + i*ALH:.1f}" xml:space="preserve">' +
+        out.append(f'<text font-size="{AFS}" x="{PAD}" y="{ay + PR*PX + (i + 1)*ALH - 1:.1f}" xml:space="preserve">' +
                    "".join(f'<tspan class="{c}">{esc(t)}</tspan>' for c, t in spans) + "</text>")
     for i, parts in enumerate(txt):
         if parts:
