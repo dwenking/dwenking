@@ -76,8 +76,8 @@ def lines(s):
 def main():
     art, txt = ascii_art(), lines(stats())
     PAD = 28
-    n = max(len(art), len(txt)) + 1
-    H = int(n * LH + 40)
+    n = len(txt) + 1
+    H = int(max(n * LH, len(art) * ALH + 2 * PAD) + 40)  # art rows use the smaller art line height
     x_txt = PAD + W * CW + 40
     W_px = int(x_txt + W * CW + PAD)
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W_px}" height="{H}" viewBox="0 0 {W_px} {H}" font-family="SF Mono,Menlo,Consolas,monospace" font-size="{FS}">',
