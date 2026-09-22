@@ -1,1 +1,1 @@
-<a href="https://dwenking.github.io/"><img src="img/fetch.svg?v=2" alt="wenqian.deng — Software Developer @ NVIDIA. Java, Go, Python, TypeScript. Contact: dengwenking@gmail.com, dwenking.github.io"></a>
+<a href="https://dwenking.github.io/"><img src="img/fetch.svg?v=3" alt="wenqian.deng — Software Developer @ NVIDIA. Java, Go, Python, TypeScript. Contact: dengwenking@gmail.com, dwenking.github.io"></a>
