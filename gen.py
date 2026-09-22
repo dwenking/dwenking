@@ -1,11 +1,12 @@
-"""Regenerate img/fetch.svg: pixel-art ASCII of the GitHub avatar + neofetch-style info + live GitHub stats.
+"""Regenerate img/fetch.svg: ASCII art of avatar-peace.png + neofetch-style info + live GitHub stats.
 Run: python3 gen.py   (set GITHUB_TOKEN to raise API rate limits; the Action does)"""
 import io, json, os, urllib.request
-from PIL import Image
+from PIL import Image, ImageFilter
 
 USER = "dwenking"
-GRID, PX = 48, 7               # avatar → GRID×GRID pixels, each PX px square
+COLS, ROWS = 78, 36            # art grid in characters; ROWS ≈ COLS * CW/LH keeps a square image square
 CW, LH, FS = 7.8, 17, 13       # char width, line height, font size (px)
+RAMP = " .:-=+*#%@"            # by ink coverage per cell
 W = 62                         # right-column width in chars
 
 def get(url):
@@ -13,17 +14,14 @@ def get(url):
           **({"Authorization": "Bearer " + os.environ["GITHUB_TOKEN"]} if os.environ.get("GITHUB_TOKEN") else {})})
     return urllib.request.urlopen(req, timeout=30).read()
 
-def pixel_art():
-    im = Image.open(io.BytesIO(get(f"https://github.com/{USER}.png?size=460"))).convert("RGB")
-    im = im.resize((GRID, GRID), Image.BOX).quantize(16, dither=Image.Dither.NONE).convert("RGB")  # posterize → pixel look
-    rows = []
-    for y in range(GRID):
-        row = []
-        for x in range(GRID):
-            r, g, b = im.getpixel((x, y))
-            row.append(None if (r * 299 + g * 587 + b * 114) // 1000 > 240 else f"#{r:02x}{g:02x}{b:02x}")  # white bg → blank
-        rows.append(row)
-    return rows
+def ascii_art():
+    im = Image.open("avatar-peace.png").convert("L")
+    ink = im.point(lambda p: 255 if p < 110 else 0)           # black line art → ink, face/background → blank
+    edge = ink.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.FIND_EDGES).resize((COLS, ROWS), Image.BOX)
+    fill = ink.resize((COLS, ROWS), Image.BOX)                 # box filter = ink coverage per cell
+    # outlines get the full ramp; solid fills (hair) are capped to a light hatch so the face stays readable
+    glyph = lambda e, f: RAMP[max(min(len(RAMP) - 1, int((e / 255) ** .5 * 14)), min(3, f * 4 // 255))]
+    return ["".join(glyph(e, f) for e, f in zip(edge.crop((0, y, COLS, y + 1)).tobytes(), fill.crop((0, y, COLS, y + 1)).tobytes())) for y in range(ROWS)]
 
 def stats():
     try:
@@ -73,22 +71,18 @@ def lines(s):
     ]
 
 def main():
-    art, txt = pixel_art(), lines(stats())
+    art, txt = ascii_art(), lines(stats())
     PAD = 28
-    H = int(max(len(txt) * LH + 40, GRID * PX + 2 * PAD))
-    x_txt = PAD + GRID * PX + 40
+    n = max(len(art), len(txt)) + 1
+    H = int(n * LH + 40)
+    x_txt = PAD + COLS * CW + 40
     W_px = int(x_txt + W * CW + PAD)
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W_px}" height="{H}" viewBox="0 0 {W_px} {H}" font-family="SF Mono,Menlo,Consolas,monospace" font-size="{FS}">',
            f'<rect width="{W_px}" height="{H}" rx="10" fill="#0d1117" stroke="#30363d"/>',
-           '<style>.k{fill:#f2a65a}.d{fill:#484f58}.v{fill:#79c0ff}.t{fill:#e6edf3;font-weight:700}</style>']
-    y0 = (H - GRID * PX) // 2
-    for y, row in enumerate(art):  # merge same-coloured horizontal runs into one rect
-        x = 0
-        while x < GRID:
-            col, x1 = row[x], x
-            while x1 < GRID and row[x1] == col: x1 += 1
-            if col: out.append(f'<rect x="{PAD + x*PX}" y="{y0 + y*PX}" width="{(x1-x)*PX}" height="{PX}" fill="{col}"/>')
-            x = x1
+           '<style>.a{fill:#c9d1d9}.k{fill:#f2a65a}.d{fill:#484f58}.v{fill:#79c0ff}.t{fill:#e6edf3;font-weight:700}</style>']
+    y0 = PAD + 12 + (n - 1 - len(art)) * LH // 2  # vertically centre the art
+    for i, row in enumerate(art):
+        out.append(f'<text class="a" x="{PAD}" y="{y0 + i*LH}" xml:space="preserve">{esc(row)}</text>')
     for i, parts in enumerate(txt):
         if parts:
             out.append(f'<text x="{x_txt}" y="{PAD + 12 + i*LH}" xml:space="preserve">' +
