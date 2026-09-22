@@ -1,13 +1,15 @@
-"""Regenerate img/fetch.svg: ASCII art of avatar-peace.png + neofetch-style info + live GitHub stats.
+"""Regenerate img/fetch.svg: ASCII art of pets.png (dog + cat) + neofetch-style info + live GitHub stats.
 Run: python3 gen.py   (set GITHUB_TOKEN to raise API rate limits; the Action does)"""
 import io, json, os, urllib.request
-from PIL import Image, ImageFilter
+from PIL import Image, ImageOps
 
 USER = "dwenking"
-COLS, ROWS = 78, 36            # art grid in characters; ROWS ≈ COLS * CW/LH keeps a square image square
-CW, LH, FS = 7.8, 17, 13       # char width, line height, font size (px)
-RAMP = " .:-=+*#%@"            # by ink coverage per cell
 W = 62                         # right-column width in chars
+CW, LH, FS = 7.8, 17, 13       # char width, line height, font size (px)
+AFS = 7                        # art font size; smaller cells → more detail in the same pixel width as the text column
+ACW, ALH = AFS * .6, AFS * 1.05
+COLS = int(W * CW / ACW)       # art column is exactly as wide as the text column
+RAMP = " .:-=+*#%@"            # by brightness: white fur → dense glyphs on the dark card
 
 def get(url):
     req = urllib.request.Request(url, headers={"User-Agent": USER, "Accept": "application/vnd.github+json",
@@ -15,13 +17,14 @@ def get(url):
     return urllib.request.urlopen(req, timeout=30).read()
 
 def ascii_art():
-    im = Image.open("avatar-peace.png").convert("L")
-    ink = im.point(lambda p: 255 if p < 110 else 0)           # black line art → ink, face/background → blank
-    edge = ink.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.FIND_EDGES).resize((COLS, ROWS), Image.BOX)
-    fill = ink.resize((COLS, ROWS), Image.BOX)                 # box filter = ink coverage per cell
-    # outlines get the full ramp; solid fills (hair) are capped to a light hatch so the face stays readable
-    glyph = lambda e, f: RAMP[max(min(len(RAMP) - 1, int((e / 255) ** .5 * 14)), min(3, f * 4 // 255))]
-    return ["".join(glyph(e, f) for e, f in zip(edge.crop((0, y, COLS, y + 1)).tobytes(), fill.crop((0, y, COLS, y + 1)).tobytes())) for y in range(ROWS)]
+    im = Image.open("pets.png").convert("RGBA")
+    im = im.crop(im.getchannel("A").getbbox())
+    rows = round(COLS * ACW / ALH * im.height / im.width)       # keep the photo's aspect in character cells
+    im = im.resize((COLS, rows), Image.BOX)
+    lum = ImageOps.autocontrast(im.convert("L"), cutoff=3, mask=im.getchannel("A")).tobytes()  # stretch fur tones so faces read
+    alpha = im.getchannel("A").tobytes()
+    ch = lambda l, a: " " if a < 128 else RAMP[min(len(RAMP) - 1, int((l / 255) ** .9 * len(RAMP)))]
+    return ["".join(ch(lum[y*COLS + x], alpha[y*COLS + x]) for x in range(COLS)) for y in range(rows)]
 
 def stats():
     try:
@@ -75,14 +78,14 @@ def main():
     PAD = 28
     n = max(len(art), len(txt)) + 1
     H = int(n * LH + 40)
-    x_txt = PAD + COLS * CW + 40
+    x_txt = PAD + W * CW + 40
     W_px = int(x_txt + W * CW + PAD)
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W_px}" height="{H}" viewBox="0 0 {W_px} {H}" font-family="SF Mono,Menlo,Consolas,monospace" font-size="{FS}">',
            f'<rect width="{W_px}" height="{H}" rx="10" fill="#0d1117" stroke="#30363d"/>',
            '<style>.a{fill:#c9d1d9}.k{fill:#f2a65a}.d{fill:#484f58}.v{fill:#79c0ff}.t{fill:#e6edf3;font-weight:700}</style>']
-    y0 = PAD + 12 + (n - 1 - len(art)) * LH // 2  # vertically centre the art
+    y0 = PAD + 12 + ((n - 1) * LH - len(art) * ALH) / 2  # vertically centre the art against the text block
     for i, row in enumerate(art):
-        out.append(f'<text class="a" x="{PAD}" y="{y0 + i*LH}" xml:space="preserve">{esc(row)}</text>')
+        out.append(f'<text class="a" font-size="{AFS}" x="{PAD}" y="{y0 + i*ALH:.1f}" xml:space="preserve">{esc(row)}</text>')
     for i, parts in enumerate(txt):
         if parts:
             out.append(f'<text x="{x_txt}" y="{PAD + 12 + i*LH}" xml:space="preserve">' +
