@@ -591,9 +591,9 @@
 <text x="551.5999999999999" y="108" xml:space="preserve"><tspan class="k">. Kernel:</tspan><tspan class="d"> .................................. </tspan><tspan class="v">Software Developer</tspan></text>
 <text x="551.5999999999999" y="125" xml:space="preserve"><tspan class="k">. Uptime:</tspan><tspan class="d"> ................................................ </tspan><tspan class="v">2019</tspan></text>
 <text x="551.5999999999999" y="142" xml:space="preserve"><tspan class="k">. IDE:</tspan><tspan class="d"> .............................. </tspan><tspan class="v">VS Code, Cursor, IntelliJ</tspan></text>
-<text x="551.5999999999999" y="159" xml:space="preserve"><tspan class="k">. Languages.Programming:</tspan><tspan class="d"> ..... </tspan><tspan class="v">Java, Go, Python, TypeScript, C#</tspan></text>
+<text x="551.5999999999999" y="159" xml:space="preserve"><tspan class="k">. Languages.Programming:</tspan><tspan class="d"> . </tspan><tspan class="v">Java, Go, Python, TypeScript, C#, SQL</tspan></text>
 <text x="551.5999999999999" y="176" xml:space="preserve"><tspan class="k">. Languages.Frameworks:</tspan><tspan class="d"> ............... </tspan><tspan class="v">Spring Boot, Vue, Kitex</tspan></text>
-<text x="551.5999999999999" y="193" xml:space="preserve"><tspan class="k">. Languages.Storage:</tspan><tspan class="d"> ............ </tspan><tspan class="v">MongoDB, Redis, DynamoDB, SQL</tspan></text>
+<text x="551.5999999999999" y="193" xml:space="preserve"><tspan class="k">. Languages.Storage:</tspan><tspan class="d"> ................. </tspan><tspan class="v">MongoDB, Redis, DynamoDB</tspan></text>
 <text x="551.5999999999999" y="210" xml:space="preserve"><tspan class="k">. Languages.Cloud:</tspan><tspan class="d"> ................................. </tspan><tspan class="v">AWS, Azure</tspan></text>
 <text x="551.5999999999999" y="227" xml:space="preserve"><tspan class="k">. Languages.Real:</tspan><tspan class="d"> ........................... </tspan><tspan class="v">Mandarin, English</tspan></text>
 <text x="551.5999999999999" y="244" xml:space="preserve"><tspan class="k">.</tspan></text>
@@ -606,5 +606,5 @@
 <text x="551.5999999999999" y="363" xml:space="preserve"><tspan class="k">.</tspan></text>
 <text x="551.5999999999999" y="380" xml:space="preserve"><tspan class="t">- GitHub Stats ———————————————————————————————————————————————</tspan></text>
 <text x="551.5999999999999" y="397" xml:space="preserve"><tspan class="k">. </tspan><tspan class="k">Repos:</tspan><tspan class="d"> .................. </tspan><tspan class="v">14</tspan><tspan class="d"> | </tspan><tspan class="k">Stars:</tspan><tspan class="d"> ................. </tspan><tspan class="v">102</tspan></text>
-<text x="551.5999999999999" y="414" xml:space="preserve"><tspan class="k">. </tspan><tspan class="k">Commits:</tspan><tspan class="d"> ............... </tspan><tspan class="v">330</tspan><tspan class="d"> | </tspan><tspan class="k">Followers:</tspan><tspan class="d"> .............. </tspan><tspan class="v">36</tspan></text>
+<text x="551.5999999999999" y="414" xml:space="preserve"><tspan class="k">. </tspan><tspan class="k">Commits:</tspan><tspan class="d"> ............... </tspan><tspan class="v">331</tspan><tspan class="d"> | </tspan><tspan class="k">Followers:</tspan><tspan class="d"> .............. </tspan><tspan class="v">36</tspan></text>
 </svg>
