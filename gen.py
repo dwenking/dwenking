@@ -19,11 +19,14 @@ def get(url):
     return urllib.request.urlopen(req, timeout=30).read()
 
 BG = "#0d1117"
-SAL, PK, MAG, CY, PU = "#e07a7a", "#ff5d8f", "#b5179e", "#4cc9f0", "#7209b7"   # Oriental Pearl
-GOLD, WIN, BRN, BRN2, BGRY, BWIN, STEEL, GRN, ROAD = "#c9a66b", "#ffe08a", "#8b5e3c", "#a67c52", "#6c7a99", "#cfe0ff", "#a8b8d0", "#7bd389", "#3a4250"
-STARS = ["#ffd166", "#c77dff", "#7dd3fc", "#ff8fab"]
-PALETTE = [SAL, PK, MAG, CY, PU, GOLD, WIN, BRN, BRN2, BGRY, BWIN, STEEL, GRN, ROAD] + STARS
+# cyberpunk palette: dark bodies, neon cyan / magenta / purple / yellow lights
+NEO_C, NEO_M, NEO_P, NEO_Y, DK1, DK2, DK3 = "#00f0ff", "#ff2bd6", "#9d4edd", "#ffe600", "#23264d", "#2f3670", "#3e478f"
+SAL, PK, MAG, CY, PU = NEO_P, NEO_C, NEO_M, NEO_C, "#5a189a"                    # Oriental Pearl
+GOLD, WIN, BRN, BRN2, BGRY, BWIN, STEEL, GRN, ROAD = DK2, NEO_Y, DK1, DK2, DK3, NEO_C, DK2, NEO_M, NEO_C
+STARS = [NEO_C, NEO_M, NEO_P, NEO_Y]
+PALETTE = list(dict.fromkeys([SAL, PK, MAG, CY, PU, GOLD, WIN, BRN, BRN2, BGRY, BWIN, STEEL, GRN, ROAD] + STARS))
 CLS = {c: f"c{i}" for i, c in enumerate(PALETTE)}          # colour → css class of its dimmed reflection
+CLS.update({DK1: "a", DK2: "a", DK3: "a"})                  # dark bodies reflect as plain grey, not near-black
 rgb = lambda c: tuple(int(c[i:i + 2], 16) for i in (1, 3, 5))
 dim = lambda c: "#%02x%02x%02x" % tuple(int(a * .7 + b * .3) for a, b in zip(rgb(c), rgb(BG)))
 
@@ -42,13 +45,13 @@ def pixel_sky():
     def bld(x0, x1, h, body, win):
         d.rectangle([x0, g - h, x1, g], fill=body); windows(x0, g - h, x1, g, body, win)
     for x0, w, h, body in [(0, 5, 6, BRN), (6, 5, 9, BRN2), (34, 5, 8, BRN), (40, 4, 11, BRN2), (52, 4, 7, BRN), (66, 2, 9, BRN2)]:
-        bld(x0, x0 + w, h, body, WIN)
+        bld(x0, x0 + w, h, body, rnd.choice([NEO_M, NEO_C, NEO_Y]))
     d.ellipse([40, g - 14, 44, g - 10], fill=GRN)         # a small green dome, Bund style
     for hw, h in [(5, 16), (4, 22), (3, 27), (2, 31)]: bld(46 - hw, 46 + hw, h, GOLD, WIN)   # Jin Mao tiers
     d.line([(46, g - 31), (46, g - 35)], fill=GOLD)
     d.polygon([(55, g), (64, g), (62, g - 33), (57, g - 33)], fill=BGRY); windows(55, g - 33, 64, g, BGRY, BWIN)  # SWFC
     d.rectangle([59, g - 32, 60, g - 26], fill=BG)        # its trapezoid aperture
-    d.polygon([(68, g), (78, g), (76, g - 37), (70, g - 37)], fill=STEEL); windows(68, g - 37, 78, g, STEEL, BWIN)  # Shanghai Tower
+    d.polygon([(68, g), (78, g), (76, g - 37), (70, g - 37)], fill=STEEL); windows(68, g - 37, 78, g, STEEL, NEO_M)  # Shanghai Tower
     cx = 22                                               # Oriental Pearl
     for x0 in (15, 22, 29): d.line([(x0, g), (cx, g - 7)], fill=SAL, width=2)   # tripod legs
     d.rectangle([cx - 1, g - 30, cx + 1, g - 18], fill=SAL)                       # column
@@ -136,7 +139,7 @@ def main():
     H = int(max(n * LH, art_h + 2 * PAD) + 40)
     x_txt = PAD + W * CW + 40
     W_px = int(x_txt + W * CW + PAD)
-    style = ".a{fill:#8b949e}.k{fill:#f2a65a}.d{fill:#484f58}.v{fill:#79c0ff}.t{fill:#e6edf3;font-weight:700}" + \
+    style = ".a{fill:#8b949e}.k{fill:#ff2bd6}.d{fill:#3e478f}.v{fill:#00f0ff}.t{fill:#ffe600;font-weight:700}" + \
             "".join(f".{k}{{fill:{dim(c)}}}" for c, k in CLS.items())
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W_px}" height="{H}" viewBox="0 0 {W_px} {H}" font-family="SF Mono,Menlo,Consolas,monospace" font-size="{FS}">',
            f'<rect width="{W_px}" height="{H}" rx="10" fill="{BG}" stroke="#30363d"/>', f"<style>{style}</style>"]
